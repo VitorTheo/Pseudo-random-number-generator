@@ -1,0 +1,47 @@
+const { createHmac } = require('crypto'); // Importar o módulo 'crypto' para usar o HMAC
+
+// Função que gera o próximo número pseudoaleatório na faixa de 0 a 36
+function getNextRandomNumberInRange(serverSeed, clientSeed, nonce) {
+  // Função geradora de bytes pseudoaleatórios
+  function* byteGenerator({ serverSeed, clientSeed, nonce, cursor }) {
+    // Setup cursor variables
+    let currentRound = 0; // Começar do início da sequência
+    let currentRoundCursor = 0;
+
+    // Generate outputs until cursor requirement fulfilled
+    while (true) {
+      // HMAC function used to output provided inputs into bytes
+      const hmac = createHmac('sha256', serverSeed);
+      hmac.update(`${clientSeed}:${nonce}:${currentRound}`);
+      const buffer = hmac.digest();
+
+      // Update cursor for next iteration of loop
+      while (currentRoundCursor < 32) {
+        yield Number(buffer[currentRoundCursor]);
+        currentRoundCursor += 1;
+      }
+      currentRoundCursor = 0;
+      currentRound += 1;
+    }
+  }
+
+  // Criar o gerador de bytes pseudoaleatórios
+  const generator = byteGenerator({ serverSeed, clientSeed, nonce });
+
+  // Obter o próximo byte pseudoaleatório gerado e ajustar para a faixa de 0 a 36
+  const nextRandomByte = generator.next().value;
+  const nextRandomNumberInRange = nextRandomByte % 37;
+
+  return nextRandomNumberInRange;
+}
+
+// Valores de entrada
+const serverSeed = "e73c90d3c39829d8d312feb90dc9a5b13fa3feced33a4084bf7b9052c733b3be";
+const clientSeed = "z6zIi83I6C";
+const nonce = 1;
+
+// Obter o próximo número pseudoaleatório na faixa de 0 a 36
+const nextRandomNumber = getNextRandomNumberInRange(serverSeed, clientSeed, nonce);
+
+console.log(nextRandomNumber);
+
